@@ -1,0 +1,153 @@
+import requests
+import threading
+import time
+import re
+from bs4 import BeautifulSoup
+from colorama import init, Fore
+
+class ProxyHandler():
+    def __init__(self, filename: str):
+        self.filename = filename
+        self.proxies = []
+
+    def scrape_proxies(self):
+        urls = """
+https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt
+https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt
+https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt
+https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt
+https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/http.txt
+https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/http.txt
+https://raw.githubusercontent.com/officialputuid/KangProxy/KangProxy/http/http.txt
+https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/http.txt
+https://raw.githubusercontent.com/yuceltoluyag/GoodProxy/main/GoodProxy.txt
+https://raw.githubusercontent.com/saschazesiger/Free-Proxies/master/proxies/http.txt
+https://github.com/saschazesiger/Free-Proxies/raw/master/proxies/fast.txt
+https://raw.githubusercontent.com/saschazesiger/Free-Proxies/master/proxies/ultrafast.txt
+https://advanced.name/freeproxy/6399cac9eabed
+"""
+
+        def pattern_one(url):
+            ip_port = re.findall("(\d{,3}\.\d{,3}\.\d{,3}\.\d{,3}:\d{2,5})", url)
+
+            if not ip_port: 
+                pattern_two(url)
+            else:
+                for i in ip_port:
+                    self.proxies.append(i)
+
+        def pattern_two(url):
+            ip = re.findall(">(\d{,3}\.\d{,3}\.\d{,3}\.\d{,3})<", url)
+            port = re.findall("td>(\d{2,5})<", url)
+
+            if not ip or not port: 
+                pattern_three(url)
+            else:
+                for i in range(len(ip)):
+                    self.proxies.append(i)
+
+        def pattern_three(url):
+            ip = re.findall(">\n[\s]+(\d{,3}\.\d{,3}\.\d{,3}\.\d{,3})", url)
+            port = re.findall(">\n[\s]+(\d{2,5})\n", url)
+
+            if not ip or not port: 
+                pattern_four(url)
+            else:
+                for i in range(len(ip)):
+                    self.proxies.append(i)
+
+        def pattern_four(url):
+            ip = re.findall(">(\d{,3}\.\d{,3}\.\d{,3}\.\d{,3})<", url)
+            port = re.findall(">(\d{2,5})<", url)
+
+            if not ip or not port:
+                pattern_five(url)
+            else:
+                for i in range(len(ip)):
+                    self.proxies.append(i)
+
+        def pattern_five(url):
+            ip = re.findall("(\d{,3}\.\d{,3}\.\d{,3}\.\d{,3})", url)
+            port = re.findall("(\d{2,5})", url)
+
+            for i in range(len(ip)):
+                    self.proxies.append(i)
+
+        def start(url):
+            try:
+                headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36"}
+                req = requests.get(url, headers=headers).text
+                pattern_one(req)
+                print(Fore.CYAN + f"Scraped proxies from: {Fore.MAGENTA + url}" + "\n")
+            except:
+                pass
+
+        threads = list()
+        for url in urls.splitlines():
+            if url:
+                x = threading.Thread(target=start, args=(url, ))
+                x.start()
+                threads.append(x)
+
+        for th in threads:
+            th.join()
+        
+    def check(self, proxylist):
+        for proxy in proxylist:
+            try:
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0"}
+                requests.get("https://httpbin.org/ip", headers=headers, proxies={"http": proxy,"https": proxy}, timeout=1)
+                
+                print(Fore.GREEN + "SUCCESS: " + proxy)
+
+                with open(self.filename, "a") as f:
+                    f.write(proxy + "\n")
+            except:
+                print(Fore.RED + "FAIL   : " + proxy)
+
+    def check_proxies(self):
+        open(self.filename, "w").close()
+
+        self.scrape_proxies()
+
+        time.sleep(1)
+        print(Fore.GREEN + "\n" + f"Scraped {len(self.proxies)}")
+        time.sleep(1)
+        print(Fore.BLUE + "Starting checking process...\n")
+        time.sleep(1)
+
+        self.optimize_proxies()
+
+        for i in self.proxies:
+            threading.Thread(target=self.check, args=(i,)).start()
+    
+    def optimize_proxies(self):
+        n = 0
+        l = 0
+
+        while round(n) != len(self.proxies)//100:
+            l += 1
+            n = len(self.proxies) // l
+        
+        self.proxies = [self.proxies[x:x+n] for x in range(0, len(self.proxies), n)]
+
+    def cleanup(self):
+        contents = open(self.filename, "r").readlines()
+        new_proxies = []
+
+        for i, v in enumerate(contents):
+            if v == "":
+                contents.pop(i)
+
+        for x in contents:
+            if not x in new_proxies:
+                new_proxies.append(x)
+
+        open(self.filename, "w").close()
+
+        with open(self.filename, "a") as f:
+            f.write("".join(new_proxies))
+
+init(convert=True)
+handler = ProxyHandler("output.txt")
+handler.check_proxies()

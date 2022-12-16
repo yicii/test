@@ -1,0 +1,6 @@
+import requests
+import json
+link = input('NHAP LINK CAN BUG: ')
+api = requests.get(f'https://leanhtruong.edu.vn/api/Get_Link?url={link}').json()
+url = api['url']
+print(f'LINK DA BUG: {url}')

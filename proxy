@@ -1,0 +1,1 @@
+python get && python cle && python3 live.py -t 1 -s google.com -l output.txt
